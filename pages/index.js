@@ -14,13 +14,11 @@ export default function Home() {
   });
   const [searchTerm, setSearchTerm] = useState("");
 
-  // 🔁 데이터 로드
   useEffect(() => {
     const saved = localStorage.getItem("events");
     if (saved) setEvents(JSON.parse(saved));
   }, []);
 
-  // 💾 자동 저장
   useEffect(() => {
     localStorage.setItem("events", JSON.stringify(events));
   }, [events]);
@@ -42,6 +40,7 @@ export default function Home() {
       date: formData.date,
       client: formData.client,
       owner: formData.owner,
+      completed: false,
     };
     setEvents([...events, newEvent]);
     setFormData({ title: "", date: "", client: "", owner: "" });
@@ -50,6 +49,12 @@ export default function Home() {
   const handleDelete = (index) => {
     const updated = [...events];
     updated.splice(index, 1);
+    setEvents(updated);
+  };
+
+  const toggleComplete = (index) => {
+    const updated = [...events];
+    updated[index].completed = !updated[index].completed;
     setEvents(updated);
   };
 
@@ -70,13 +75,6 @@ export default function Home() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <input
-            className="border p-2 w-full"
-            placeholder="요청 내용"
-            name="title"
-            value={formData.title}
-            onChange={handleInputChange}
-          />
-          <input
             type="date"
             className="border p-2 w-full"
             name="date"
@@ -95,6 +93,13 @@ export default function Home() {
             placeholder="담당자 이름"
             name="owner"
             value={formData.owner}
+            onChange={handleInputChange}
+          />
+          <input
+            className="border p-2 w-full"
+            placeholder="요청 내용"
+            name="title"
+            value={formData.title}
             onChange={handleInputChange}
           />
           <button
@@ -136,20 +141,28 @@ export default function Home() {
         <table className="w-full table-auto border border-gray-600">
           <thead>
             <tr className="bg-gray-800 text-white">
-              <th className="border px-4 py-2">요청 내용</th>
               <th className="border px-4 py-2">날짜</th>
               <th className="border px-4 py-2">거래처</th>
               <th className="border px-4 py-2">담당자</th>
+              <th className="border px-4 py-2">요청 내용</th>
+              <th className="border px-4 py-2">완료</th>
               <th className="border px-4 py-2">삭제</th>
             </tr>
           </thead>
           <tbody>
             {filteredEvents.map((event, idx) => (
               <tr key={idx} className="text-center">
-                <td className="border px-4 py-2">{event.title}</td>
                 <td className="border px-4 py-2">{event.date}</td>
                 <td className="border px-4 py-2">{event.client}</td>
                 <td className="border px-4 py-2">{event.owner}</td>
+                <td className="border px-4 py-2">{event.title}</td>
+                <td className="border px-4 py-2">
+                  <input
+                    type="checkbox"
+                    checked={event.completed}
+                    onChange={() => toggleComplete(idx)}
+                  />
+                </td>
                 <td className="border px-4 py-2">
                   <button
                     className="text-red-500 hover:underline"
