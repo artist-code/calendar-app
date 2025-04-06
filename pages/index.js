@@ -13,6 +13,7 @@ export default function Home() {
     owner: "",
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   useEffect(() => {
     const saved = localStorage.getItem("events");
@@ -63,11 +64,29 @@ export default function Home() {
     csv.generateCsv(events);
   };
 
-  const filteredEvents = events.filter((event) =>
-    `${event.title} ${event.client} ${event.owner}`
+  const today = new Date();
+  const isDueSoon = (dateStr) => {
+    const target = new Date(dateStr);
+    const diff = (target - today) / (1000 * 60 * 60 * 24);
+    return diff >= 0 && diff <= 1;
+  };
+
+  const filteredEvents = events.filter((event) => {
+    const matchSearch = `${event.title} ${event.client} ${event.owner}`
       .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
+      .includes(searchTerm.toLowerCase());
+
+    const matchFilter =
+      filterStatus === "all" ||
+      (filterStatus === "completed" && event.completed) ||
+      (filterStatus === "incomplete" && !event.completed);
+
+    return matchSearch && matchFilter;
+  });
+
+  const totalCount = filteredEvents.length;
+  const completedCount = filteredEvents.filter(e => e.completed).length;
+  const completionRate = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
 
   return (
     <div className="p-4 space-y-8">
@@ -122,6 +141,26 @@ export default function Home() {
         </div>
       </div>
 
+      {/* 필터 선택 */}
+      <div className="flex gap-4 my-4">
+        <button onClick={() => setFilterStatus("all")} className={`px-3 py-1 rounded ${filterStatus === "all" ? "bg-blue-600 text-white" : "bg-gray-200"}`}>
+          전체
+        </button>
+        <button onClick={() => setFilterStatus("completed")} className={`px-3 py-1 rounded ${filterStatus === "completed" ? "bg-blue-600 text-white" : "bg-gray-200"}`}>
+          완료
+        </button>
+        <button onClick={() => setFilterStatus("incomplete")} className={`px-3 py-1 rounded ${filterStatus === "incomplete" ? "bg-blue-600 text-white" : "bg-gray-200"}`}>
+          미완료
+        </button>
+      </div>
+
+      {/* 통계 영역 */}
+      <div className="bg-gray-100 p-4 rounded shadow text-center">
+        <p className="text-lg font-semibold">총 요청 수: {totalCount}건</p>
+        <p className="text-green-700 font-medium">완료: {completedCount}건</p>
+        <p className="text-blue-600 font-medium">진행률: {completionRate}%</p>
+      </div>
+
       {/* 요청 리스트 + 검색 + 다운로드 */}
       <div className="mt-6">
         <div className="flex justify-between mb-2">
@@ -150,29 +189,32 @@ export default function Home() {
             </tr>
           </thead>
           <tbody>
-            {filteredEvents.map((event, idx) => (
-              <tr key={idx} className="text-center">
-                <td className="border px-4 py-2">{event.date}</td>
-                <td className="border px-4 py-2">{event.client}</td>
-                <td className="border px-4 py-2">{event.owner}</td>
-                <td className="border px-4 py-2">{event.title}</td>
-                <td className="border px-4 py-2">
-                  <input
-                    type="checkbox"
-                    checked={event.completed}
-                    onChange={() => toggleComplete(idx)}
-                  />
-                </td>
-                <td className="border px-4 py-2">
-                  <button
-                    className="text-red-500 hover:underline"
-                    onClick={() => handleDelete(idx)}
-                  >
-                    삭제
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {filteredEvents.map((event, idx) => {
+              const isUrgent = isDueSoon(event.date) && !event.completed;
+              return (
+                <tr key={idx} className={`text-center ${isUrgent ? "bg-red-100" : ""}`}>
+                  <td className="border px-4 py-2">{event.date}</td>
+                  <td className="border px-4 py-2">{event.client}</td>
+                  <td className="border px-4 py-2">{event.owner}</td>
+                  <td className="border px-4 py-2">{event.title}</td>
+                  <td className="border px-4 py-2">
+                    <input
+                      type="checkbox"
+                      checked={event.completed}
+                      onChange={() => toggleComplete(idx)}
+                    />
+                  </td>
+                  <td className="border px-4 py-2">
+                    <button
+                      className="text-red-500 hover:underline"
+                      onClick={() => handleDelete(idx)}
+                    >
+                      삭제
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
